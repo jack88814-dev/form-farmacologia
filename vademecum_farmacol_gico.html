@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vademecum Farmacológico Clínico</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for medical icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .printable-card, .printable-card * {
+                visibility: visible;
+            }
+            .printable-card {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                box-shadow: none !important;
+                border: 1px solid #cbd5e1 !important;
+                margin: 0;
+                page-break-inside: avoid;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        /* Custom scrollbar for clean aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-full flex flex-col font-sans antialiased">
+
+    <header class="bg-gradient-to-r from-teal-700 via-cyan-700 to-blue-800 text-white shadow-lg no-print">
+        <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/10 p-3 rounded-2xl backdrop-blur-md border border-white/20 shadow-inner">
+                    <i class="fa-solid fa-pills text-3xl text-cyan-200"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Vademecum Clínico</h1>
+                    <p class="text-xs sm:text-sm text-cyan-100 font-medium">Guía Farmacológica Integral para Profesionales de la Salud</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <div class="relative flex-1 md:w-72">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-search"></i>
+                    </span>
+                    <input type="text" id="searchInput" placeholder="Buscar medicamento..." class="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-cyan-200 focus:outline-none focus:ring-2 focus:ring-white/50 backdrop-blur-md text-sm transition">
+                </div>
+                <button onclick="openModal()" class="bg-white text-teal-800 hover:bg-cyan-50 font-semibold px-4 py-2 rounded-xl shadow-md transition flex items-center gap-2 text-sm whitespace-nowrap cursor-pointer">
+                    <i class="fa-solid fa-plus-circle text-teal-600"></i> Agregar Medicamento
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        
+        <!-- Empty state notification if no items match search -->
+        <div id="emptyState" class="hidden text-center py-16">
+            <div class="bg-teal-50 w-20 h-20 mx-auto rounded-full flex items-center justify-center text-teal-600 text-3xl mb-4 shadow-sm">
+                <i class="fa-solid fa-box-open"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-700">No se encontraron medicamentos</h3>
+            <p class="text-sm text-slate-500 mt-1">Intenta con otro término de búsqueda o agrega un nuevo registro.</p>
+        </div>
+
+        <!-- Cards Grid Container -->
+        <div id="medGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Dynamic Cards inserted here -->
+        </div>
+    </main>
+
+    <div id="medModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto hidden no-print">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-100 transform transition-all">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-teal-700 to-cyan-700 px-6 py-4 text-white flex justify-between items-center">
+                <h3 id="modalTitle" class="text-lg font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-capsules"></i> Nuevo Medicamento
+                </h3>
+                <button onclick="closeModal()" class="text-white/80 hover:text-white text-xl p-1 rounded-full hover:bg-white/10 transition w-8 h-8 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Form Body -->
+            <form id="medForm" onsubmit="handleFormSubmit(event)" class="p-6 overflow-y-auto space-y-5 flex-1">
+                <input type="hidden" id="medId">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Nombre del Medicamento *</label>
+                        <input type="text" id="nombre" required placeholder="Ej. Furosemida" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Presentación *</label>
+                        <input type="text" id="presentacion" required placeholder="Ej. Ampolla 20 mg/2 mL" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">URL Ilustración / Icono</label>
+                        <input type="url" id="ilustracion" placeholder="https://ejemplo.com/imagen.jpg" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        <span class="text-[11px] text-slate-400 mt-0.5 block">Si se deja en blanco, se generará un icono profesional automático.</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Embarazo (FDA)</label>
+                            <select id="embarazo" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                <option value="Categoría A">Categoría A</option>
+                                <option value="Categoría B" selected>Categoría B</option>
+                                <option value="Categoría C">Categoría C</option>
+                                <option value="Categoría D">Categoría D</option>
+                                <option value="Categoría X">Categoría X</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Lactancia</label>
+                            <input type="text" id="lactancia" placeholder="Ej. Compatible" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Mecanismo de Acción *</label>
+                    <textarea id="mecanismo" rows="2" required placeholder="Describa el mecanismo de acción..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Indicaciones *</label>
+                        <textarea id="indicaciones" rows="2" required placeholder="Indicaciones clínicas..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Contraindicaciones *</label>
+                        <textarea id="contraindicaciones" rows="2" required placeholder="Contraindicaciones absolutas y relativas..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Efectos Secundarios</label>
+                        <textarea id="efectos" rows="2" placeholder="Reacciones adversas frecuentes..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Forma de Preparación</label>
+                        <textarea id="preparacion" rows="2" placeholder="Dilución, reconstitución..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Tiempo Administración</label>
+                        <input type="text" id="tiempo" placeholder="Ej. IV en 1-2 min" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Dosis Habitual</label>
+                        <input type="text" id="dosis" placeholder="Ej. 20-40 mg IV" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Suero de Elección</label>
+                        <input type="text" id="suero" placeholder="Ej. Solución Salina 0.9%" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Incompatibilidades</label>
+                        <input type="text" id="incompatibilidades" placeholder="Ej. Soluciones ácidas, pH bajo" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Interacciones Medicamentosas</label>
+                        <input type="text" id="interacciones" placeholder="Ej. Aminoglucósidos, AINEs" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal()" class="px-5 py-2.5 rounded-xl text-slate-600 bg-slate-100 hover:bg-slate-200 font-medium text-sm transition">Cancelar</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium text-sm shadow-md hover:from-teal-700 hover:to-cyan-700 transition">Guardar Ficha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Initial state of medications matching all user requirements
+        let medications = JSON.parse(localStorage.getItem('vademecum_meds')) || [
+            {
+                id: '1',
+                nombre: 'Furosemida',
+                presentacion: 'Ampolla 20 mg/2 mL',
+                mecanismo: 'Diurético de asa que inhibe el cotransportador Na+/K+/2Cl- en la rama ascendente gruesa del asa de Henle.',
+                indicaciones: 'Edema agudo de pulmón, insuficiencia cardiaca congestiva, edema asociado a insuficiencia renal o hepática, crisis hipertensiva.',
+                contraindicaciones: 'Hipersensibilidad a furosemida o sulfonamidas, anuria, hipovolemia, deshidratación severa, coma hepático.',
+                efectos: 'Hipopotasemia, hiponatremia, deshidratación, hipotensión ortostática, ototoxicidad transitoria.',
+                preparacion: 'Puede administrarse sin diluir en bolo lento o diluido en 50 mL de solución salina o glucosada.',
+                tiempo: 'Bolo IV lento en 1 a 2 minutos. Infusión continua a max 4 mg/min.',
+                dosis: '20 a 40 mg IV iniciales, repetibles según respuesta clínica.',
+                suero: 'Solución Salina 0.9% o Glucosa 5%',
+                incompatibilidades: 'Soluciones ácidas (pH < 5.5), gentamicina, ciprofloxacino en Y.',
+                interacciones: 'Potencia efectos ototóxicos de aminoglucósidos y nefrotóxicos de cefalosporinas. Reduce excreción de litio.',
+                embarazo: 'Categoría C',
+                lactancia: 'Precaución (excreta en leche materna, puede inhibir la lactancia)',
+                ilustracion: ''
+            },
+            {
+                id: '2',
+                nombre: 'Ceftriaxona',
+                presentacion: 'Frasco ampolla 1 g (Polvo liofilizado)',
+                mecanismo: 'Antibiótico betalactámico cefalosporínico de tercera generación. Inhibe la síntesis de la pared celular bacteriana.',
+                indicaciones: 'Infecciones graves por gramnegativos y grampositivos susceptibles, meningitis, neumonía adquirida en comunidad, sepsis, gonorrea.',
+                contraindicaciones: 'Hipersensibilidad a cefalosporinas, neonatos con hiperbilirrubinemia (riesgo de kernicterus), uso simultáneo con soluciones de calcio en neonatos.',
+                efectos: 'Diarrea, náuseas, eosinofilia, trombocitosis, elevación transitoria de transaminasas, colitis pseudomembranosa.',
+                preparacion: 'Reconstituir el frasco de 1g con 9.6 mL de agua estéril para inyección (concentración 100 mg/mL).',
+                tiempo: 'Infusión IV intermitente diluida en 50-100 mL de suero, administrada en 30 a 60 minutos.',
+                dosis: '1 a 2 g cada 24 horas IV o IM según gravedad de la infección.',
+                suero: 'Solución Salina 0.9% o Glucosa 5%',
+                incompatibilidades: 'Soluciones que contienen calcio (Ringer Lactato, Hartmann), eritromicina, fluconazol.',
+                interacciones: 'Antagonismo bacteriano con cloranfenicol. Puede potenciar anticoagulantes orales.',
+                embarazo: 'Categoría B',
+                lactancia: 'Compatible (bajas concentraciones en leche)',
+                ilustracion: ''
+            },
+            {
+                id: '3',
+                nombre: 'Paracetamol (Acetaminofén)',
+                presentacion: 'Vial IV 1000 mg / 100 mL (10 mg/mL)',
+                mecanismo: 'Inhibe la síntesis de prostaglandinas en el sistema nervioso central y bloquea la generación del impulso doloroso a nivel periférico. Actúa sobre el centro termorregulador hipotalámico.',
+                indicaciones: 'Tratamiento a corto plazo del dolor moderado (especialmente postoperatorio) y fiebre cuando la vía oral no es posible.',
+                contraindicaciones: 'Hipersensibilidad al paracetamol, insuficiencia hepática grave, enfermedad hepática activa.',
+                efectos: 'Raros a dosis terapéuticas. Elevación de enzimas hepáticas, reacciones de hipersensibilidad cutánea, hipotensión leve.',
+                preparacion: 'Listo para usar. Se administra por vía intravenosa directa durante 15 minutos sin dilución adicional.',
+                tiempo: 'Infusión intravenosa durante 15 minutos exactos.',
+                dosis: '1 g cada 6 horas (máximo 4 g al día en adultos >50 kg).',
+                suero: 'Listo para infusión (Solución isotónica integrada)',
+                incompatibilidades: 'No mezclar con otros medicamentos en el mismo sachet o línea de infusión.',
+                interacciones: 'El uso crónico con alcohol aumenta riesgo de hepatotoxicidad. Potencia anticoagulantes con dosis altas prolongadas.',
+                embarazo: 'Categoría B',
+                lactancia: 'Compatible (excreción mínima)',
+                ilustracion: ''
+            }
+        ];
+
+        // Save to localStorage helper
+        function saveToStorage() {
+            localStorage.setItem('vademecum_meds', JSON.stringify(medications));
+        }
+
+        function renderMedications(filterText = '') {
+            const grid = document.getElementById('medGrid');
+            const emptyState = document.getElementById('emptyState');
+            grid.innerHTML = '';
+
+            const filtered = medications.filter(m => 
+                m.nombre.toLowerCase().includes(filterText.toLowerCase()) ||
+                m.indicaciones.toLowerCase().includes(filterText.toLowerCase()) ||
+                m.mecanismo.toLowerCase().includes(filterText.toLowerCase())
+            );
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            filtered.forEach(med => {
+                const card = document.createElement('div');
+                card.className = "printable-card bg-white rounded-3xl shadow-md hover:shadow-xl transition-all duration-300 border border-slate-100 flex flex-col overflow-hidden group";
+                
+                // Pregnancy badge styling
+                let pregColor = "bg-emerald-100 text-emerald-800 border-emerald-200";
+                if(med.embarazo.includes('C')) pregColor = "bg-amber-100 text-amber-800 border-amber-200";
+                if(med.embarazo.includes('D') || med.embarazo.includes('X')) pregColor = "bg-rose-100 text-rose-800 border-rose-200";
+
+                // Illustration or default icon
+                let illustrationHTML = '';
+                if (med.ilustracion && med.ilustracion.trim() !== '') {
+                    illustrationHTML = `<img src="${med.ilustracion}" alt="${med.nombre}" class="w-full h-36 object-cover object-center group-hover:scale-105 transition duration-500" onerror="this.onerror=null; this.src='https://placehold.co/600x200/0d9488/white?text=${encodeURIComponent(med.nombre)}';">`;
+                } else {
+                    illustrationHTML = `
+                        <div class="w-full h-28 bg-gradient-to-br from-teal-500 via-cyan-600 to-blue-700 flex items-center justify-center text-white relative overflow-hidden">
+                            <div class="absolute -right-6 -bottom-6 opacity-20 text-8xl"><i class="fa-solid fa-pills"></i></div>
+                            <div class="text-center z-10 px-4">
+                                <i class="fa-solid fa-prescription-bottle-medical text-3xl mb-1 text-cyan-200"></i>
+                                <span class="block text-xs uppercase tracking-widest font-bold text-cyan-100">Ficha Farmacológica</span>
+                            </div>
+                        </div>`;
+                }
+
+                card.innerHTML = `
+                    ${illustrationHTML}
+                    <div class="p-6 flex-1 flex flex-col justify-between">
+                        <div>
+                            <!-- Header & Presentation -->
+                            <div class="flex justify-between items-start gap-2 mb-3">
+                                <div>
+                                    <h2 class="text-xl font-bold text-slate-800">${escapeHTML(med.nombre)}</h2>
+                                    <span class="inline-block bg-teal-50 text-teal-700 text-xs font-semibold px-2.5 py-1 rounded-lg mt-1 border border-teal-100">${escapeHTML(med.presentacion)}</span>
+                                </div>
+                                <div class="flex flex-col items-end gap-1">
+                                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-full border ${pregColor}">${escapeHTML(med.embarazo)}</span>
+                                    <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200"><i class="fa-solid fa-child text-slate-500 mr-1"></i>${escapeHTML(med.lactancia)}</span>
+                                </div>
+                            </div>
+
+                            <!-- Core Details Grid -->
+                            <div class="space-y-3 text-sm mt-4">
+                                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                    <span class="block text-[11px] uppercase tracking-wider font-bold text-teal-700 mb-0.5"><i class="fa-solid fa-gears mr-1"></i> Mecanismo de Acción</span>
+                                    <p class="text-slate-600 text-xs leading-relaxed">${escapeHTML(med.mecanismo)}</p>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                        <span class="block font-bold text-slate-700 mb-0.5"><i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Indicaciones</span>
+                                        <p class="text-slate-600">${escapeHTML(med.indicaciones)}</p>
+                                    </div>
+                                    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                        <span class="block font-bold text-slate-700 mb-0.5"><i class="fa-solid fa-ban text-rose-500 mr-1"></i> Contraindicaciones</span>
+                                        <p class="text-slate-600">${escapeHTML(med.contraindicaciones)}</p>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-1.5 text-xs text-slate-600 pt-1">
+                                    <div class="flex justify-between border-b border-slate-100 pb-1">
+                                        <span class="font-semibold text-slate-700">Efectos Secundarios:</span>
+                                        <span class="text-right text-slate-500 max-w-[60%]">${escapeHTML(med.efectos || 'N/D')}</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-slate-100 pb-1">
+                                        <span class="font-semibold text-slate-700">Preparación:</span>
+                                        <span class="text-right text-slate-500 max-w-[60%]">${escapeHTML(med.preparacion || 'N/D')}</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-slate-100 pb-1">
+                                        <span class="font-semibold text-slate-700">T. Administración:</span>
+                                        <span class="text-right text-slate-500 max-w-[60%]">${escapeHTML(med.tiempo || 'N/D')}</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-slate-100 pb-1">
+                                        <span class="font-semibold text-slate-700">Dosis Habitual:</span>
+                                        <span class="text-right text-slate-500 max-w-[60%] font-medium text-teal-800">${escapeHTML(med.dosis || 'N/D')}</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-slate-100 pb-1">
+                                        <span class="font-semibold text-slate-700">Suero de Elección:</span>
+                                        <span class="text-right text-slate-500 max-w-[60%]">${escapeHTML(med.suero || 'N/D')}</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-slate-100 pb-1">
+                                        <span class="font-semibold text-slate-700">Incompatibilidades:</span>
+                                        <span class="text-right text-rose-600 max-w-[60%]">${escapeHTML(med.incompatibilidades || 'Ninguna')}</span>
+                                    </div>
+                                    <div class="flex justify-between pb-1">
+                                        <span class="font-semibold text-slate-700">Interacciones:</span>
+                                        <span class="text-right text-slate-500 max-w-[60%]">${escapeHTML(med.interacciones || 'Ninguna')}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Action Buttons -->
+                        <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between no-print gap-2">
+                            <button onclick="editMedication('${med.id}')" class="flex-1 bg-slate-100 hover:bg-teal-50 text-slate-700 hover:text-teal-700 text-xs font-semibold py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-pen-to-square"></i> Editar
+                            </button>
+                            <button onclick="printCard(this)" class="flex-1 bg-teal-50 hover:bg-teal-600 text-teal-700 hover:text-white text-xs font-semibold py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-print"></i> Imprimir Ficha
+                            </button>
+                            <button onclick="deleteMedication('${med.id}')" class="bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white text-xs p-2 rounded-xl transition flex items-center justify-center" title="Eliminar">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openModal(medId = null) {
+            const modal = document.getElementById('medModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const form = document.getElementById('medForm');
+            form.reset();
+            document.getElementById('medId').value = '';
+
+            if (medId) {
+                modalTitle.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Editar Medicamento`;
+                const med = medications.find(m => m.id === medId);
+                if (med) {
+                    document.getElementById('medId').value = med.id;
+                    document.getElementById('nombre').value = med.nombre;
+                    document.getElementById('presentacion').value = med.presentacion;
+                    document.getElementById('ilustracion').value = med.ilustracion || '';
+                    document.getElementById('embarazo').value = med.embarazo;
+                    document.getElementById('lactancia').value = med.lactancia;
+                    document.getElementById('mecanismo').value = med.mecanismo;
+                    document.getElementById('indicaciones').value = med.indicaciones;
+                    document.getElementById('contraindicaciones').value = med.contraindicaciones;
+                    document.getElementById('efectos').value = med.efectos;
+                    document.getElementById('preparacion').value = med.preparacion;
+                    document.getElementById('tiempo').value = med.tiempo;
+                    document.getElementById('dosis').value = med.dosis;
+                    document.getElementById('suero').value = med.suero;
+                    document.getElementById('incompatibilidades').value = med.incompatibilidades;
+                    document.getElementById('interacciones').value = med.interacciones;
+                }
+            } else {
+                modalTitle.innerHTML = `<i class="fa-solid fa-capsules"></i> Nuevo Medicamento`;
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('medModal').classList.add('hidden');
+        }
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            const id = document.getElementById('medId').value;
+            const medData = {
+                id: id ? id : Date.now().toString(),
+                nombre: document.getElementById('nombre').value.trim(),
+                presentacion: document.getElementById('presentacion').value.trim(),
+                ilustracion: document.getElementById('ilustracion').value.trim(),
+                embarazo: document.getElementById('embarazo').value,
+                lactancia: document.getElementById('lactancia').value.trim(),
+                mecanismo: document.getElementById('mecanismo').value.trim(),
+                indicaciones: document.getElementById('indicaciones').value.trim(),
+                contraindicaciones: document.getElementById('contraindicaciones').value.trim(),
+                efectos: document.getElementById('efectos').value.trim(),
+                preparacion: document.getElementById('preparacion').value.trim(),
+                tiempo: document.getElementById('tiempo').value.trim(),
+                dosis: document.getElementById('dosis').value.trim(),
+                suero: document.getElementById('suero').value.trim(),
+                incompatibilidades: document.getElementById('incompatibilidades').value.trim(),
+                interacciones: document.getElementById('interacciones').value.trim()
+            };
+
+            if (id) {
+                const index = medications.findIndex(m => m.id === id);
+                if (index !== -1) {
+                    medications[index] = medData;
+                }
+            } else {
+                medications.unshift(medData);
+            }
+
+            saveToStorage();
+            renderMedications(document.getElementById('searchInput').value);
+            closeModal();
+        }
+
+        function editMedication(id) {
+            openModal(id);
+        }
+
+        function deleteMedication(id) {
+            if (confirm('¿Está seguro de eliminar esta ficha farmacológica?')) {
+                medications = medications.filter(m => m.id !== id);
+                saveToStorage();
+                renderMedications(document.getElementById('searchInput').value);
+            }
+        }
+
+        function printCard(button) {
+            const card = button.closest('.printable-card');
+            // Temporarily add printable-card class scope or handle window print
+            window.print();
+        }
+
+        // Search input listener
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            renderMedications(e.target.value);
+        });
+
+        // Helper function to prevent XSS injection in dynamic HTML
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        // Initial render on load
+        window.onload = function() {
+            renderMedications();
+        };
+    </script>
+</body>
+</html>
